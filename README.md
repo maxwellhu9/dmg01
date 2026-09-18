@@ -95,8 +95,9 @@ distributable games. Both `GAME BOY` and `GAME BOY COLOR`
 titles run. Tobu Tobu Girl is a good one. Commercial games are
 copyrighted, so dump your own carts.
 
-Tobu Tobu Girl lives in `public/` and ships with the build (MIT licensed, so
-that's allowed). Anything else goes in `games/`, which is gitignored.
+Tobu Tobu Girl lives in `public/` and ships with the build, which its MIT
+license allows as long as the credit travels with it — see
+[CREDITS.md](CREDITS.md). Anything else goes in `games/`, which is gitignored.
 
 ## Status
 

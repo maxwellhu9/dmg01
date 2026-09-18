@@ -14,12 +14,12 @@ const serialPanel = document.getElementById("serial-panel")!;
 const serialOut = document.getElementById("serial-out")!;
 const soundBtn = document.getElementById("sound-btn") as HTMLButtonElement;
 const picker = document.getElementById("game-picker") as HTMLSelectElement;
-const credits = document.getElementById("credits")!;
 
 // Games bundled with the site, served from public/. To add one: drop the .gb
-// file in public/ and add a line here. Only ship games whose license allows
-// redistribution (homebrew with an explicit open license) — commercial ROMs
-// are copyrighted.
+// file in public/, add a line here, and add the author and license to
+// CREDITS.md — open licenses permit redistribution on the condition that the
+// attribution travels with the copy. Commercial ROMs are copyrighted and
+// cannot be bundled at all.
 interface BundledGame {
   file: string;
   title: string;
@@ -160,10 +160,6 @@ picker.addEventListener("change", () => {
   if (game) void bootBundled(game);
   else boot(buildDemoRom(), "SCROLL DEMO (built-in)");
 });
-
-credits.innerHTML = GAMES.map(
-  (g) => `Bundled: <a href="${g.url}">${g.title}</a> by ${g.by}, ${g.license} licensed`,
-).join(" · ");
 
 resetBtn.addEventListener("click", () => {
   persistSave();
