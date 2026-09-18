@@ -13,6 +13,32 @@ const errorEl = document.getElementById("error")!;
 const serialPanel = document.getElementById("serial-panel")!;
 const serialOut = document.getElementById("serial-out")!;
 const soundBtn = document.getElementById("sound-btn") as HTMLButtonElement;
+const picker = document.getElementById("game-picker") as HTMLSelectElement;
+const credits = document.getElementById("credits")!;
+
+// Games bundled with the site, served from public/. To add one: drop the .gb
+// file in public/ and add a line here. Only ship games whose license allows
+// redistribution (homebrew with an explicit open license) — commercial ROMs
+// are copyrighted.
+interface BundledGame {
+  file: string;
+  title: string;
+  by: string;
+  license: string;
+  url: string;
+}
+
+const GAMES: BundledGame[] = [
+  {
+    file: "tobu.gb",
+    title: "Tobu Tobu Girl",
+    by: "Tangram Games",
+    license: "MIT",
+    url: "https://hh.gbdev.io/game/tobutobugirl",
+  },
+];
+
+const DEMO = "__demo__";
 
 const audio = new AudioOut();
 let sampleRate = 0;
@@ -76,9 +102,10 @@ function boot(rom: Uint8Array, name: string) {
     serialPanel.style.display = "block";
     serialOut.textContent = all;
   };
-  romInfo.innerHTML = `<b>${gb.cart.title}</b> · ${name === romName ? "" : ""}${
-    ["ROM only", "MBC1", "", "MBC3"][gb.cart.mbc]
-  } · <span id="fps"></span>`;
+  const mapper = { 0: "ROM only", 1: "MBC1", 3: "MBC3", 5: "MBC5" }[gb.cart.mbc];
+  romInfo.innerHTML = `<b>${gb.cart.title}</b> · ${
+    gb.cart.cgb ? "color" : "mono"
+  } · ${mapper} · <span id="fps"></span>`;
 }
 
 // --- input ---
@@ -110,6 +137,34 @@ window.addEventListener("drop", (e) => {
   const f = e.dataTransfer?.files[0];
   if (f) void loadFile(f);
 });
+// Bundled games are served next to the page, so a visitor needs no download.
+async function bootBundled(game: BundledGame) {
+  try {
+    const res = await fetch(game.file);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    boot(new Uint8Array(await res.arrayBuffer()), game.title);
+  } catch {
+    errorEl.textContent = `Couldn't load ${game.title}. Drop a .gb file in instead.`;
+    errorEl.style.display = "block";
+  }
+}
+
+for (const g of GAMES) {
+  picker.add(new Option(g.title, g.file));
+}
+picker.add(new Option("Built-in demo cart", DEMO));
+
+picker.addEventListener("change", () => {
+  persistSave();
+  const game = GAMES.find((g) => g.file === picker.value);
+  if (game) void bootBundled(game);
+  else boot(buildDemoRom(), "SCROLL DEMO (built-in)");
+});
+
+credits.innerHTML = GAMES.map(
+  (g) => `Bundled: <a href="${g.url}">${g.title}</a> by ${g.by}, ${g.license} licensed`,
+).join(" · ");
+
 resetBtn.addEventListener("click", () => {
   persistSave();
   boot(currentRom, romName);
@@ -166,5 +221,8 @@ function loop(now: number) {
   requestAnimationFrame(loop);
 }
 
+// Boot the demo cart immediately so the screen is never blank, then swap in
+// the first bundled game as soon as it arrives.
 boot(buildDemoRom(), "SCROLL DEMO (built-in)");
+if (GAMES.length) void bootBundled(GAMES[0]);
 requestAnimationFrame(loop);

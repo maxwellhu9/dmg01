@@ -30,16 +30,30 @@ export class GameBoy {
     this.cart = new Cartridge(rom);
     this.bus = new Bus(this.cart, this.ppu, this.timer, this.joypad, this.serial, this.ints, this.apu);
     this.cpu = new CPU(this.bus);
+
+    if (this.cart.cgb) {
+      this.ppu.cgb = true;
+      this.bus.cgb = true;
+      // Games detect Color hardware by checking A at startup, which the boot
+      // ROM leaves as 0x11 on a CGB and 0x01 on a DMG.
+      this.cpu.a = 0x11;
+    }
+    // H-blank DMA moves its next block each time a scanline finishes.
+    this.ppu.onHBlank = () => this.bus.hdmaStep();
   }
 
   runFrame() {
     let elapsed = 0;
     while (elapsed < CYCLES_PER_FRAME) {
       const cycles = this.cpu.step();
-      this.ppu.tick(cycles);
+      // In double-speed mode the CPU runs twice as fast while the video and
+      // sound hardware keep the original clock, so they advance half as far
+      // per instruction. The timer follows the CPU clock.
+      const busCycles = this.bus.doubleSpeed ? cycles >> 1 : cycles;
+      this.ppu.tick(busCycles);
+      this.apu.tick(busCycles);
       this.timer.tick(cycles);
-      this.apu.tick(cycles);
-      elapsed += cycles;
+      elapsed += busCycles;
     }
   }
 }

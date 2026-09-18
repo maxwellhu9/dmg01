@@ -336,8 +336,10 @@ export class CPU {
             this.bus.write((addr + 1) & 0xffff, this.sp >> 8);
             return 20;
           }
-          case 2: // STOP: enters very-low-power mode; encoded with a pad byte
+          case 2: // STOP: on Color hardware this is also how a game commits
+            // a CPU speed switch it requested through KEY1.
             this.fetch8();
+            this.bus.trySpeedSwitch();
             return 4;
           case 3: { // JR e
             const e = (this.fetch8() << 24) >> 24; // sign-extend

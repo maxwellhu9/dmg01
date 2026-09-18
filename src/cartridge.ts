@@ -3,16 +3,20 @@
 // battery-backed RAM into 0xA000-0xBFFF. The CPU "writes to ROM" to talk
 // to the MBC — those writes are register pokes, not memory stores.
 //
-// Supported here: ROM-only (Tetris), MBC1 (Zelda, Mario Land 2),
-// MBC3 minus the real-time clock (Pokémon Red/Blue).
+// Supported here: ROM-only, MBC1, MBC3 (minus the real-time clock), and MBC5,
+// which nearly every Game Boy Color cartridge uses.
 
 const RAM_SIZES = [0, 0x800, 0x2000, 0x8000, 0x20000, 0x10000];
 
 export class Cartridge {
   readonly rom: Uint8Array;
   readonly ram: Uint8Array;
-  readonly mbc: 0 | 1 | 3;
+  readonly mbc: 0 | 1 | 3 | 5;
   readonly title: string;
+  // Byte 0x143 of the header: 0x80 means the game has Color enhancements but
+  // still runs on an original Game Boy, 0xC0 means Color hardware required.
+  readonly cgb: boolean;
+  readonly cgbOnly: boolean;
   ramDirty = false; // set on RAM writes so the UI knows when to persist saves
 
   private romBank = 1;
@@ -28,17 +32,26 @@ export class Cartridge {
     if (type === 0x00 || type === 0x08 || type === 0x09) this.mbc = 0;
     else if (type >= 0x01 && type <= 0x03) this.mbc = 1;
     else if (type >= 0x0f && type <= 0x13) this.mbc = 3;
+    else if (type >= 0x19 && type <= 0x1e) this.mbc = 5;
     else {
       throw new Error(
         `Unsupported mapper (cartridge type 0x${type.toString(16).padStart(2, "0")}). ` +
-        `Supported: ROM-only, MBC1, MBC3.`,
+        `Supported: ROM-only, MBC1, MBC3, MBC5.`,
       );
     }
 
-    this.ram = new Uint8Array(RAM_SIZES[rom[0x149]] ?? 0);
+    // MBC5 carts declare RAM size normally, but a few homebrew headers lie;
+    // default to 32KB when the code is unknown so saves have somewhere to go.
+    this.ram = new Uint8Array(RAM_SIZES[rom[0x149]] ?? (this.mbc === 5 ? 0x8000 : 0));
+
+    this.cgb = (rom[0x143] & 0x80) !== 0;
+    this.cgbOnly = rom[0x143] === 0xc0;
 
     let title = "";
-    for (let i = 0x134; i < 0x144; i++) {
+    // On Color carts the title field is shorter; the last bytes hold the
+    // manufacturer code and the CGB flag.
+    const titleEnd = this.cgb ? 0x143 : 0x144;
+    for (let i = 0x134; i < titleEnd; i++) {
       const ch = rom[i];
       if (ch === 0) break;
       title += String.fromCharCode(ch);
@@ -75,6 +88,11 @@ export class Cartridge {
         // 5-bit bank number; writing 0 selects 1 (so banks 0x20/0x40/0x60
         // are unreachable — a real MBC1 quirk games had to design around).
         this.romBank = v & 0x1f || 1;
+      } else if (this.mbc === 5) {
+        // MBC5 splits the bank number across two registers and, unlike the
+        // others, lets you actually select bank 0.
+        if (addr < 0x3000) this.romBank = (this.romBank & 0x100) | v;
+        else this.romBank = (this.romBank & 0xff) | ((v & 1) << 8);
       } else {
         this.romBank = v & 0x7f || 1;
       }

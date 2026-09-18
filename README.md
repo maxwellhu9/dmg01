@@ -3,9 +3,11 @@
 A Game Boy emulator I wrote from scratch in TypeScript. It plays real games in
 your browser, with sound, at full speed.
 
-**[Play it here](https://maxwellhu9.github.io/dmg01/)** — drag any `.gb` file
-onto the page. No ROM handy? It boots a little demo cartridge I hand-assembled
-in raw machine code.
+**[Play it here](https://maxwellhu9.github.io/dmg01/)** — it boots straight into
+[Tobu Tobu Girl](https://hh.gbdev.io/game/tobutobugirl), an MIT-licensed homebrew
+game that ships with the site, so there's nothing to download. Drag any other
+`.gb` file onto the page to run that instead, or hit "Demo cart" for a little
+cartridge I hand-assembled in raw machine code.
 
 No emulation libraries, no frameworks. Everything in `src/` is the machine.
 
@@ -41,11 +43,11 @@ sloppy timing still breaks games. (Ask me how I know.)
 | File | What it is |
 | --- | --- |
 | `cpu.ts` | The Sharp SM83 processor. Decodes instructions by bit pattern instead of a 512-case switch, so whole families of opcodes share one code path |
-| `ppu.ts` | Graphics. Draws the screen one scanline at a time from tiles, sprites, and a scrolling background |
+| `ppu.ts` | Graphics. Draws the screen one scanline at a time from tiles, sprites, and a scrolling background, in green on DMG or full color on GBC |
 | `apu.ts` | Sound. Two square waves, a wavetable channel, and a noise generator, mixed and filtered |
 | `audio.ts` | Ships those samples to the browser's audio thread without gaps |
 | `bus.ts` | The address decoder. Maps the CPU's 16-bit address space onto everything else |
-| `cartridge.ts` | ROM header parsing and bank switching for MBC1/MBC3 carts |
+| `cartridge.ts` | ROM header parsing and bank switching for MBC1/MBC3/MBC5 carts |
 | `timer.ts`, `joypad.ts`, `serial.ts`, `interrupts.ts` | The small stuff, all necessary |
 | `demo.ts` | The built-in demo cart, assembled byte by byte |
 
@@ -92,11 +94,12 @@ CI runs all of this on every push and only deploys if everything passes.
 ## Where to get games
 
 [Homebrew Hub](https://hh.gbdev.io) has hundreds of free, legally
-distributable games. Look for the plain `GAME BOY` badge, since Game Boy Color
-titles won't run here yet. Tobu Tobu Girl is a good one. Commercial games are
+distributable games. Both `GAME BOY` and `GAME BOY COLOR`
+titles run. Tobu Tobu Girl is a good one. Commercial games are
 copyrighted, so dump your own carts.
 
-Put ROMs in `games/`. It's gitignored.
+Tobu Tobu Girl lives in `public/` and ships with the build (MIT licensed, so
+that's allowed). Anything else goes in `games/`, which is gitignored.
 
 ## Status
 
@@ -104,14 +107,14 @@ Done:
 - Full instruction set, interrupts, and the weird edge cases (halt bug, BCD, the `EI` delay)
 - Graphics: background, window, sprites, both sprite sizes, OAM DMA
 - All four sound channels with envelopes, sweep, and length counters
-- MBC1 and MBC3 cartridges, battery saves that survive a refresh
+- Game Boy Color: palettes, banked VRAM and work RAM, HDMA, double-speed mode
+- MBC1, MBC3, and MBC5 cartridges, battery saves that survive a refresh
 - Runs a frame in about 0.45 ms, roughly 35x faster than it needs to
 
 Not done:
 - Save states and rewind
 - Memory timing below instruction granularity (Blargg's `mem_timing` will fail)
-- MBC5, which a lot of later games need
-- Game Boy Color
+- MBC2 and MBC6/7, which a handful of games use
 - MBC3's real-time clock, so Pokémon Gold's day/night cycle won't tick
 
 ## If you want to build one
