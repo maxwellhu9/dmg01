@@ -1,13 +1,10 @@
 # DMG-01
 
-A Game Boy emulator I wrote from scratch in TypeScript. It plays real games in
+A Game Boy emulator from scratch in TypeScript. It plays real games in
 your browser, with sound, at full speed.
 
-**[Play it here](https://maxwellhu9.github.io/dmg01/)** — it boots straight into
-[Tobu Tobu Girl](https://hh.gbdev.io/game/tobutobugirl), an MIT-licensed homebrew
-game that ships with the site, so there's nothing to download. Drag any other
-`.gb` file onto the page to run that instead, or hit "Demo cart" for a little
-cartridge I hand-assembled in raw machine code.
+**[Play it here](https://maxwellhu9.github.io/dmg01/)** — There are already preset games or you can drag any other
+`.gb` file onto the page to run that instead, or hit "Demo cart" for a cool looking cartridge.
 
 No emulation libraries, no frameworks. Everything in `src/` is the machine.
 
