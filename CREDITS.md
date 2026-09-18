@@ -1,13 +1,19 @@
 # Credits
 
-The emulator itself is my own work. The games bundled with it are not, and are
-included under licenses that permit redistribution. Attribution below is a
+The emulator itself is my own work. The games bundled with it are not. They are
+included under licenses that permit redistribution, and these notices are a
 condition of those licenses.
 
 ## Bundled games
 
-**Tobu Tobu Girl** — Tangram Games. MIT licensed.
-<https://hh.gbdev.io/game/tobutobugirl>
+- **Tobu Tobu Girl** — Tangram Games. MIT licensed.
+  <https://hh.gbdev.io/game/tobutobugirl>
+- **TetraBlox 2000** — Ernest Yale. MIT licensed. Originally an entry in the
+  BUNG 2nd Coding Competition, October 1999.
+- **Fortune & Glory** — VideoGameStoryTime. MIT licensed.
+
+All three were found through [Homebrew Hub](https://hh.gbdev.io), which catalogs
+freely distributable Game Boy homebrew.
 
 ## Test ROMs
 

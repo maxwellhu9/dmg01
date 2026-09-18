@@ -25,17 +25,14 @@ interface BundledGame {
   title: string;
   by: string;
   license: string;
-  url: string;
 }
 
+// The first entry loads on page open; the rest are fetched when picked, so
+// keep the smallest one first.
 const GAMES: BundledGame[] = [
-  {
-    file: "tobu.gb",
-    title: "Tobu Tobu Girl",
-    by: "Tangram Games",
-    license: "MIT",
-    url: "https://hh.gbdev.io/game/tobutobugirl",
-  },
+  { file: "tobu.gb", title: "Tobu Tobu Girl", by: "Tangram Games", license: "MIT" },
+  { file: "tetrablox2000.gbc", title: "TetraBlox 2000", by: "Ernest Yale", license: "MIT" },
+  { file: "fortune-and-glory.gbc", title: "Fortune & Glory", by: "VideoGameStoryTime", license: "MIT" },
 ];
 
 const DEMO = "__demo__";
