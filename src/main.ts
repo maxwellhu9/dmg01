@@ -3,6 +3,7 @@ import { buildDemoRom } from "./demo";
 import { GameBoy } from "./gameboy";
 import type { Button } from "./joypad";
 import { SCREEN_H, SCREEN_W } from "./ppu";
+import { Rewind, type Snapshot } from "./savestate";
 
 const canvas = document.getElementById("screen") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
@@ -14,6 +15,33 @@ const serialPanel = document.getElementById("serial-panel")!;
 const serialOut = document.getElementById("serial-out")!;
 const soundBtn = document.getElementById("sound-btn") as HTMLButtonElement;
 const picker = document.getElementById("game-picker") as HTMLSelectElement;
+const saveBtn = document.getElementById("save-btn") as HTMLButtonElement;
+const loadBtn = document.getElementById("load-btn") as HTMLButtonElement;
+const statusEl = document.getElementById("status")!;
+
+// --- save states and rewind ---
+const rewind = new Rewind();
+let saved: Snapshot | null = null;
+let rewinding = false;
+let statusTimer = 0;
+
+function flashStatus(text: string) {
+  statusEl.textContent = text;
+  clearTimeout(statusTimer);
+  statusTimer = window.setTimeout(() => { statusEl.textContent = ""; }, 1500);
+}
+
+function saveState() {
+  saved = gb.saveState();
+  flashStatus("saved");
+}
+
+function loadState() {
+  if (!saved) { flashStatus("nothing saved yet"); return; }
+  gb.loadState(saved);
+  rewind.clear();   // history from the abandoned timeline no longer applies
+  flashStatus("loaded");
+}
 
 // Games bundled with the site, served from public/. To add one: drop the .gb
 // file in public/, add a line here, and add the author and license to
@@ -91,6 +119,8 @@ function boot(rom: Uint8Array, name: string) {
   serialOut.textContent = "";
   currentRom = rom;
   romName = name;
+  rewind.clear();
+  saved = null;   // a save state only makes sense for the game it came from
 
   image = new ImageData(gb.ppu.framebuffer, SCREEN_W, SCREEN_H);
   if (sampleRate) gb.apu.setSampleRate(sampleRate);
@@ -107,12 +137,16 @@ function boot(rom: Uint8Array, name: string) {
 
 // --- input ---
 window.addEventListener("keydown", (e) => {
+  if (e.code === "KeyS" && !e.repeat) { saveState(); return; }
+  if (e.code === "KeyL" && !e.repeat) { loadState(); return; }
+  if (e.code === "KeyR") { rewinding = true; statusEl.textContent = "rewinding"; return; }
   const btn = KEYMAP[e.code];
   if (!btn) return;
   e.preventDefault();
   gb.joypad.press(btn);
 });
 window.addEventListener("keyup", (e) => {
+  if (e.code === "KeyR") { rewinding = false; statusEl.textContent = ""; return; }
   const btn = KEYMAP[e.code];
   if (!btn) return;
   e.preventDefault();
@@ -158,6 +192,9 @@ picker.addEventListener("change", () => {
   else boot(buildDemoRom(), "SCROLL DEMO (built-in)");
 });
 
+saveBtn.addEventListener("click", saveState);
+loadBtn.addEventListener("click", loadState);
+
 resetBtn.addEventListener("click", () => {
   persistSave();
   boot(currentRom, romName);
@@ -195,14 +232,24 @@ function loop(now: number) {
 
   let drew = false;
   while (acc >= FRAME_MS) {
-    gb.runFrame();
+    if (rewinding) {
+      // Step back one snapshot per frame. Snapshots are 4 frames apart, so
+      // time runs backward at 4x speed until the history runs out.
+      const snap = rewind.back();
+      if (snap) gb.loadState(snap);
+      else statusEl.textContent = "can't rewind further";
+    } else {
+      gb.runFrame();
+      rewind.record(() => gb.saveState());
+    }
     acc -= FRAME_MS;
     frames++;
     drew = true;
   }
   if (drew) {
     ctx.putImageData(image, 0, 0);
-    if (audio.running) audio.push(gb.apu.pullSamples());
+    const samples = gb.apu.pullSamples();
+    if (audio.running && !rewinding) audio.push(samples);   // silence while rewinding
   }
 
   if (now - lastFpsTime >= 1000) {

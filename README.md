@@ -11,7 +11,7 @@ No emulation libraries, no frameworks. Everything in `src/` is the machine.
 ```
 npm install
 npm run dev     # emulator at localhost:5173
-npm test        # 22 tests
+npm test        # 38 tests
 ```
 
 ## What's actually going on here
@@ -46,6 +46,7 @@ sloppy timing still breaks games. (Ask me how I know.)
 | `bus.ts` | The address decoder. Maps the CPU's 16-bit address space onto everything else |
 | `cartridge.ts` | ROM header parsing and bank switching for MBC1/MBC3/MBC5 carts |
 | `timer.ts`, `joypad.ts`, `serial.ts`, `interrupts.ts` | The small stuff, all necessary |
+| `savestate.ts` | Save states and rewind: a snapshot is a deep copy of every chip's state |
 | `demo.ts` | The built-in demo cart, assembled byte by byte |
 
 ## The bug that taught me the most
@@ -55,18 +56,35 @@ Every time.
 
 The CPU was passing all 11 of Blargg's hardware test ROMs at that point, so I
 figured the problem was somewhere else. It wasn't. Sampling the program counter
-showed the game stuck in a crash loop, and tracing backwards showed the stack
-pointer drifting two bytes every time an interrupt fired.
+showed the game stuck in a crash loop, and tracing backwards through the stack
+showed one interrupt had left an extra two bytes behind.
 
 The cause was a one-instruction race. `EI` turns interrupts on, but not until
 *after* the next instruction runs. The game idles on `EI; HALT`. If an
 interrupt happened to already be pending at that exact moment, my code took a
 path meant for a different situation entirely (the "halt bug", where the CPU
 famously fails to advance) and re-ran the first instruction of the interrupt
-handler. That instruction was a `PUSH`. Two bytes leaked per interrupt, and
-thirty instructions later the game returned into its own sprite data.
+handler. That instruction was a `PUSH`, so the stack ended up two bytes off,
+and when the handler returned it grabbed the wrong address and jumped into
+memory that wasn't code. It only happened when an interrupt landed on that
+exact instruction, which is why it took about eight seconds to show up.
 
 Test ROMs check instructions in isolation. Real games check how they interact.
+
+## Save states and rewind
+
+**S** saves, **L** loads, and holding **R** rewinds up to the last ten seconds
+(there are buttons for save and load too).
+
+Every chip's state is plain data, numbers, flags, and byte arrays, so a save
+state is just a deep copy of all of it, and loading writes it back in place.
+Rewind keeps a snapshot every four frames and plays them back newest-first.
+
+The test for it is the strict one: save, play a few seconds, load, play the
+same seconds again, and check that both runs land on identical pixels. If any
+piece of state were missing from the snapshot, the second run would drift.
+That passes on the demo cart, Tobu Tobu Girl, and Fortune & Glory, which runs
+in Game Boy Color double-speed mode.
 
 ## Tests
 
@@ -109,8 +127,9 @@ Done:
 - MBC1, MBC3, and MBC5 cartridges, battery saves that survive a refresh
 - Runs a frame in about 0.45 ms, roughly 35x faster than it needs to
 
+- Save states and rewind, verified by pixel-identical replays
+
 Not done:
-- Save states and rewind
 - Memory timing below instruction granularity (Blargg's `mem_timing` will fail)
 - MBC2 and MBC6/7, which a handful of games use
 - MBC3's real-time clock, so Pokémon Gold's day/night cycle won't tick

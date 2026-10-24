@@ -5,6 +5,7 @@ import { CPU } from "./cpu";
 import { Interrupts } from "./interrupts";
 import { Joypad } from "./joypad";
 import { PPU } from "./ppu";
+import { capture, restore, type Snapshot } from "./savestate";
 import { Serial } from "./serial";
 import { Timer } from "./timer";
 
@@ -55,5 +56,29 @@ export class GameBoy {
       this.timer.tick(cycles);
       elapsed += busCycles;
     }
+  }
+
+  // Every chip, by name. These are also the "links" a snapshot skips when it
+  // finds one chip pointing at another.
+  private chips(): Record<string, object> {
+    return {
+      cpu: this.cpu, bus: this.bus, ppu: this.ppu, apu: this.apu, timer: this.timer,
+      joypad: this.joypad, serial: this.serial, ints: this.ints, cart: this.cart,
+    };
+  }
+
+  saveState(): Snapshot {
+    const chips = this.chips();
+    const links = new Set(Object.values(chips));
+    const snap: Snapshot = {};
+    for (const [name, chip] of Object.entries(chips)) snap[name] = capture(chip, links);
+    return snap;
+  }
+
+  loadState(snap: Snapshot) {
+    for (const [name, chip] of Object.entries(this.chips())) {
+      restore(chip, snap[name] as Snapshot);
+    }
+    this.apu.pullSamples();   // drop any half-made audio from before the jump
   }
 }

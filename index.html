@@ -84,6 +84,7 @@
     input[type="file"] { display: none; }
     #rom-info { color: var(--dim); font-size: 12px; }
     #rom-info b { color: var(--accent); font-weight: 600; }
+    #status { color: var(--accent); font-size: 12px; min-width: 9em; }
 
     .keys { color: var(--dim); font-size: 12px; }
     .keys kbd {
@@ -136,12 +137,16 @@
     <label class="file-btn">Load ROM<input type="file" id="rom-input" accept=".gb,.gbc,.bin" /></label>
     <button id="reset-btn">Reset</button>
     <button id="sound-btn">&#128263; sound</button>
+    <button id="save-btn" title="Save state (S)">Save</button>
+    <button id="load-btn" title="Load state (L)">Load</button>
     <span id="rom-info"><b>SCROLL DEMO</b> · built-in · <span id="fps"></span></span>
+    <span id="status"></span>
   </div>
 
   <p class="keys">
     <kbd>←↑↓→</kbd> d-pad &nbsp; <kbd>X</kbd> A &nbsp; <kbd>Z</kbd> B &nbsp;
-    <kbd>Enter</kbd> Start &nbsp; <kbd>Shift</kbd> Select &nbsp; drag a .gb / .gbc file anywhere
+    <kbd>Enter</kbd> Start &nbsp; <kbd>Shift</kbd> Select &nbsp; <kbd>S</kbd> save &nbsp;
+    <kbd>L</kbd> load &nbsp; hold <kbd>R</kbd> rewind
   </p>
 
   <p id="error"></p>
