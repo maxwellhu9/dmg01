@@ -8,12 +8,14 @@
     :root {
       --bg: #101216;
       --panel: #1a1e25;
+      --line: #2c323c;
       --shell: #b9b5ac;
       --shell-dark: #8f8b82;
       --bezel: #3d4551;
       --text: #d6dae0;
       --dim: #7c828c;
       --accent: #88c070;
+      --width: 600px;   /* the handheld's width; the panel below matches it */
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -31,6 +33,7 @@
     h1 span { color: var(--accent); }
     .tagline { color: var(--dim); font-size: 12px; margin-top: -12px; }
 
+    /* ------------------------------------------------------------ handheld */
     .shell {
       background: linear-gradient(160deg, var(--shell), var(--shell-dark));
       border-radius: 12px 12px 40px 12px;
@@ -38,6 +41,7 @@
       box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
     }
     .bezel {
+      position: relative;
       background: var(--bezel);
       border-radius: 8px 8px 24px 8px;
       padding: 18px 34px 22px;
@@ -49,57 +53,169 @@
       text-align: center;
       margin-bottom: 8px;
     }
-    canvas {
-      display: block;
+    /* The little power light. It glows while a game is running. */
+    .led {
+      position: absolute;
+      left: 11px;
+      top: 46%;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #5a2a2a;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .led.on {
+      background: #ff4a4a;
+      box-shadow: 0 0 8px #ff4a4a;
+    }
+    .screen {
+      position: relative;
       width: 480px;
       height: 432px;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
       image-rendering: pixelated;
       background: #e0f8d0;
     }
+    /* A faint inner shadow and glass sheen over the screen. */
+    .screen::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.28);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 38%);
+    }
 
-    .controls { display: flex; gap: 10px; align-items: center; }
-    button, .file-btn {
+    /* --------------------------------------------------------------- panel */
+    .deck {
+      width: min(var(--width), 100%);
       background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .row { display: flex; gap: 8px; align-items: stretch; }
+    .row .grow { flex: 1; }
+    .spacer { flex: 1; }
+
+    button, .file-btn, select {
+      background: var(--bg);
       color: var(--text);
-      border: 1px solid #2c323c;
-      border-radius: 6px;
-      padding: 8px 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 14px;
       font: inherit;
       font-size: 13px;
       cursor: pointer;
     }
-    button:hover, .file-btn:hover { border-color: var(--accent); }
-    #game-picker {
-      background: var(--accent);
-      color: #10240c;
-      border: 1px solid var(--accent);
-      border-radius: 6px;
-      padding: 8px 12px;
-      font: inherit;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    footer a { color: var(--dim); }
+    button:hover, .file-btn:hover, select:hover { border-color: var(--accent); }
     input[type="file"] { display: none; }
-    #rom-info { color: var(--dim); font-size: 12px; }
-    #rom-info b { color: var(--accent); font-weight: 600; }
-    #status { color: var(--accent); font-size: 12px; min-width: 9em; }
 
-    .keys { color: var(--dim); font-size: 12px; }
-    .keys kbd {
-      background: var(--panel);
-      border: 1px solid #2c323c;
+    /* The game picker looks like a cartridge label. */
+    .cart {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      position: relative;
+      border-left: 4px solid var(--accent);
+    }
+    .cart small {
+      position: absolute;
+      left: 14px;
+      top: 7px;
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      color: var(--dim);
+      pointer-events: none;
+    }
+    .cart select {
+      appearance: none;
+      width: 100%;
+      padding: 20px 36px 8px 14px;
+      border-radius: 0 8px 8px 0;
+      font-size: 14px;
+      font-weight: 600;
+      background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237c828c'/%3E%3C/svg%3E") no-repeat right 14px center;
+    }
+    .file-btn { display: flex; align-items: center; }
+
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--dim);
+      padding: 0 2px;
+    }
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+    }
+    #rom-info b { color: var(--text); font-weight: 600; }
+    #status { color: var(--accent); }
+
+    /* Shell colors, after some of the real Game Boy's famous editions. */
+    .shell[data-color="purple"] { --shell: rgba(152, 116, 206, 0.9); --shell-dark: rgba(88, 56, 138, 0.94); }
+    .shell[data-color="red"]    { --shell: #d84a55; --shell-dark: #9c2a36; }
+    .shell[data-color="yellow"] { --shell: #f3d04f; --shell-dark: #c99f26; }
+    .shell[data-color="silver"] { --shell: #d9dde2; --shell-dark: #9aa1ab; }
+    .shell { transition: background 0.3s; }
+    .swatches { display: flex; gap: 6px; }
+    .swatch {
+      width: 16px;
+      height: 16px;
+      padding: 0;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.25);
+    }
+    .swatch[data-color="classic"] { background: linear-gradient(160deg, #b9b5ac, #8f8b82); }
+    .swatch[data-color="purple"]  { background: linear-gradient(160deg, #9874ce, #58388a); }
+    .swatch[data-color="red"]     { background: linear-gradient(160deg, #d84a55, #9c2a36); }
+    .swatch[data-color="yellow"]  { background: linear-gradient(160deg, #f3d04f, #c99f26); }
+    .swatch[data-color="silver"]  { background: linear-gradient(160deg, #d9dde2, #9aa1ab); }
+    .swatch:hover { transform: scale(1.15); border-color: rgba(0, 0, 0, 0.25); }
+    .swatch.active { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3px var(--text); }
+
+    /* Keyboard help, folded away until you want it. */
+    details { font-size: 12px; color: var(--dim); }
+    summary { cursor: pointer; list-style: none; padding: 0 2px; }
+    summary::-webkit-details-marker { display: none; }
+    summary::before { content: "▸ "; }
+    details[open] summary::before { content: "▾ "; }
+    .keys {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px 16px;
+      margin-top: 12px;
+      padding: 12px 2px 2px;
+      border-top: 1px solid var(--line);
+    }
+    .keys div { display: flex; justify-content: space-between; gap: 8px; }
+    kbd {
+      font: inherit;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-bottom-width: 2px;
       border-radius: 4px;
-      padding: 1px 6px;
-      margin: 0 2px;
+      padding: 0 6px;
     }
 
     #serial-panel {
       display: none;
-      width: min(560px, 100%);
+      width: min(var(--width), 100%);
       background: var(--panel);
-      border: 1px solid #2c323c;
+      border: 1px solid var(--line);
       border-radius: 8px;
       padding: 12px 16px;
     }
@@ -110,44 +226,77 @@
       display: none;
       color: #e07070;
       font-size: 13px;
-      max-width: 560px;
+      max-width: var(--width);
       text-align: center;
     }
     footer { color: var(--dim); font-size: 11px; margin-top: auto; padding-top: 12px; }
+    footer a { color: var(--dim); }
 
     @media (prefers-color-scheme: light) {
-      :root { --bg: #e8e6e0; --panel: #f5f4f0; --text: #23262b; --dim: #6b7078; }
-      button, .file-btn, .keys kbd, #serial-panel { border-color: #cfccc4; }
+      :root { --bg: #e8e6e0; --panel: #f5f4f0; --line: #cfccc4; --text: #23262b; --dim: #6b7078; }
+      button, .file-btn, select, kbd { background: #fbfaf7; }
+    }
+    @media (max-width: 640px) {
+      .screen { width: 320px; height: 288px; }
+      .keys { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
 <body>
   <h1>DMG<span>-</span>01</h1>
-  <p class="tagline">a Game Boy emulator, from scratch</p>
+  <p class="tagline">a Game Boy emulator</p>
 
   <div class="shell">
     <div class="bezel">
       <div class="bezel-label">DOT MATRIX WITH STEREO SOUND</div>
-      <canvas id="screen" width="160" height="144"></canvas>
+      <span class="led" id="led" title="Power"></span>
+      <div class="screen"><canvas id="screen" width="160" height="144"></canvas></div>
     </div>
   </div>
 
-  <div class="controls">
-    <select id="game-picker" title="Choose a bundled game"></select>
-    <label class="file-btn">Load ROM<input type="file" id="rom-input" accept=".gb,.gbc,.bin" /></label>
-    <button id="reset-btn">Reset</button>
-    <button id="sound-btn">&#128263; sound</button>
-    <button id="save-btn" title="Save state (S)">Save</button>
-    <button id="load-btn" title="Load state (L)">Load</button>
-    <span id="rom-info"><b>SCROLL DEMO</b> · built-in · <span id="fps"></span></span>
-    <span id="status"></span>
-  </div>
+  <section class="deck">
+    <div class="row">
+      <label class="cart grow">
+        <small>CARTRIDGE</small>
+        <select id="game-picker" title="Choose a game"></select>
+      </label>
+      <label class="file-btn" title="Or drop a .gb file anywhere on the page">Load ROM<input type="file" id="rom-input" accept=".gb,.gbc,.bin" /></label>
+    </div>
 
-  <p class="keys">
-    <kbd>←↑↓→</kbd> d-pad &nbsp; <kbd>X</kbd> A &nbsp; <kbd>Z</kbd> B &nbsp;
-    <kbd>Enter</kbd> Start &nbsp; <kbd>Shift</kbd> Select &nbsp; <kbd>S</kbd> save &nbsp;
-    <kbd>L</kbd> load &nbsp; hold <kbd>R</kbd> rewind
-  </p>
+    <div class="row">
+      <button id="reset-btn">Reset</button>
+      <button id="sound-btn">Sound off</button>
+      <span class="spacer"></span>
+      <button id="save-btn" title="S">Save state</button>
+      <button id="load-btn" title="L">Load state</button>
+    </div>
+
+    <div class="status-line">
+      <span class="dot"></span>
+      <span id="rom-info"><b>SCROLL DEMO</b> · <span id="fps"></span></span>
+      <span id="status"></span>
+      <span class="spacer"></span>
+      <div class="swatches" role="group" aria-label="Shell color">
+        <button class="swatch" data-color="classic" title="Classic grey"></button>
+        <button class="swatch" data-color="purple" title="Atomic purple"></button>
+        <button class="swatch" data-color="red" title="Red"></button>
+        <button class="swatch" data-color="yellow" title="Yellow"></button>
+        <button class="swatch" data-color="silver" title="Silver"></button>
+      </div>
+    </div>
+
+    <details>
+      <summary>Controls</summary>
+      <div class="keys">
+        <div>Move <span><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd></span></div>
+        <div>A / B <span><kbd>X</kbd> <kbd>Z</kbd></span></div>
+        <div>Start <kbd>Enter</kbd></div>
+        <div>Select <kbd>Shift</kbd></div>
+        <div>Save / Load <span><kbd>S</kbd> <kbd>L</kbd></span></div>
+        <div>Rewind <span>hold <kbd>R</kbd></span></div>
+      </div>
+    </details>
+  </section>
 
   <p id="error"></p>
 
@@ -157,7 +306,8 @@
   </div>
 
   <footer>
-    SM83 core · scanline PPU · 4-channel APU · Game Boy Color · MBC 0/1/3/5
+    SM83 core · scanline PPU · 4-channel APU · Game Boy Color · MBC 0/1/3/5 ·
+    <a href="https://github.com/maxwellhu9/dmg01">source</a>
   </footer>
 
   <script type="module" src="/src/main.ts"></script>

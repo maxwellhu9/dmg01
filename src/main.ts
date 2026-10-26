@@ -4,6 +4,7 @@ import { GameBoy } from "./gameboy";
 import type { Button } from "./joypad";
 import { SCREEN_H, SCREEN_W } from "./ppu";
 import { Rewind, type Snapshot } from "./savestate";
+import { Intro } from "./intro";
 
 const canvas = document.getElementById("screen") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
@@ -18,6 +19,29 @@ const picker = document.getElementById("game-picker") as HTMLSelectElement;
 const saveBtn = document.getElementById("save-btn") as HTMLButtonElement;
 const loadBtn = document.getElementById("load-btn") as HTMLButtonElement;
 const statusEl = document.getElementById("status")!;
+
+// --- startup sequence and shell color ---
+const ledEl = document.getElementById("led")!;
+const shellEl = document.querySelector<HTMLElement>(".shell")!;
+const intro = new Intro({
+  led: (on) => ledEl.classList.toggle("on", on),
+  click: () => audio.click(),
+  ding: (freq, seconds) => audio.ding(freq, seconds),
+});
+
+function setShellColor(color: string) {
+  shellEl.dataset.color = color;
+  document.querySelectorAll<HTMLElement>(".swatch").forEach((s) => {
+    s.classList.toggle("active", s.dataset.color === color);
+  });
+  try { localStorage.setItem("dmg01-shell", color); } catch { /* private mode */ }
+}
+document.querySelectorAll<HTMLElement>(".swatch").forEach((s) => {
+  s.addEventListener("click", () => setShellColor(s.dataset.color!));
+});
+let savedColor = "classic";
+try { savedColor = localStorage.getItem("dmg01-shell") ?? "classic"; } catch { /* private mode */ }
+setShellColor(savedColor);
 
 // --- save states and rewind ---
 const rewind = new Rewind();
@@ -106,7 +130,9 @@ function restoreSave() {
   }
 }
 
-function boot(rom: Uint8Array, name: string) {
+type Arrival = "insert" | "power" | "silent";
+
+function boot(rom: Uint8Array, name: string, arrival: Arrival = "insert") {
   try {
     gb = new GameBoy(rom);
   } catch (err) {
@@ -115,6 +141,8 @@ function boot(rom: Uint8Array, name: string) {
     return;
   }
   errorEl.style.display = "none";
+  if (arrival === "silent") intro.skip();
+  else intro.start(arrival === "insert");
   serialPanel.style.display = "none";
   serialOut.textContent = "";
   currentRom = rom;
@@ -131,11 +159,19 @@ function boot(rom: Uint8Array, name: string) {
   };
   const mapper = { 0: "ROM only", 1: "MBC1", 3: "MBC3", 5: "MBC5" }[gb.cart.mbc];
   romInfo.innerHTML = `<b>${gb.cart.title}</b> · ${
-    gb.cart.cgb ? "color" : "mono"
+    gb.cart.cgb ? "Game Boy Color" : "Game Boy"
   } · ${mapper} · <span id="fps"></span>`;
 }
 
 // --- input ---
+function press(btn: Button) {
+  gb.joypad.press(btn);
+}
+
+function release(btn: Button) {
+  gb.joypad.release(btn);
+}
+
 window.addEventListener("keydown", (e) => {
   if (e.code === "KeyS" && !e.repeat) { saveState(); return; }
   if (e.code === "KeyL" && !e.repeat) { loadState(); return; }
@@ -143,15 +179,17 @@ window.addEventListener("keydown", (e) => {
   const btn = KEYMAP[e.code];
   if (!btn) return;
   e.preventDefault();
-  gb.joypad.press(btn);
+  intro.skip();
+  press(btn);
 });
 window.addEventListener("keyup", (e) => {
   if (e.code === "KeyR") { rewinding = false; statusEl.textContent = ""; return; }
   const btn = KEYMAP[e.code];
   if (!btn) return;
   e.preventDefault();
-  gb.joypad.release(btn);
+  release(btn);
 });
+
 
 // --- ROM loading ---
 async function loadFile(file: File) {
@@ -197,17 +235,17 @@ loadBtn.addEventListener("click", loadState);
 
 resetBtn.addEventListener("click", () => {
   persistSave();
-  boot(currentRom, romName);
+  boot(currentRom, romName, "power");
 });
 
 soundBtn.addEventListener("click", async () => {
   if (audio.running) {
     await audio.suspend();
-    soundBtn.textContent = "\u{1F507} sound";
+    soundBtn.textContent = "Sound off";
   } else {
     sampleRate = await audio.start();
     gb.apu.setSampleRate(sampleRate);
-    soundBtn.textContent = "\u{1F50A} sound";
+    soundBtn.textContent = "Sound on";
   }
 });
 
@@ -232,7 +270,9 @@ function loop(now: number) {
 
   let drew = false;
   while (acc >= FRAME_MS) {
-    if (rewinding) {
+    if (intro.active) {
+      intro.step(ctx);    // the game waits until the startup sequence ends
+    } else if (rewinding) {
       // Step back one snapshot per frame. Snapshots are 4 frames apart, so
       // time runs backward at 4x speed until the history runs out.
       const snap = rewind.back();
@@ -247,9 +287,9 @@ function loop(now: number) {
     drew = true;
   }
   if (drew) {
-    ctx.putImageData(image, 0, 0);
+    if (!intro.active) ctx.putImageData(image, 0, 0);
     const samples = gb.apu.pullSamples();
-    if (audio.running && !rewinding) audio.push(samples);   // silence while rewinding
+    if (audio.running && !rewinding && !intro.active) audio.push(samples);
   }
 
   if (now - lastFpsTime >= 1000) {
@@ -263,6 +303,6 @@ function loop(now: number) {
 
 // Boot the demo cart immediately so the screen is never blank, then swap in
 // the first bundled game as soon as it arrives.
-boot(buildDemoRom(), "SCROLL DEMO (built-in)");
+boot(buildDemoRom(), "SCROLL DEMO (built-in)", "silent");
 if (GAMES.length) void bootBundled(GAMES[0]);
 requestAnimationFrame(loop);
