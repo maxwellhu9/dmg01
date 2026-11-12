@@ -3,8 +3,14 @@
 A Game Boy emulator from scratch in TypeScript. It plays real games in
 your browser, with sound, at full speed.
 
-**[Play it here](https://maxwellhu9.github.io/dmg01/)** — There are already preset games or you can drag any other
-`.gb` file onto the page to run that instead, or hit "Demo cart" for a cool looking cartridge.
+![DMG-01 booting, then running Tobu Tobu Girl and Fortune & Glory](docs/demo.gif)
+
+**[Play it here](https://maxwellhu9.github.io/dmg01/)** — it comes with a few games, or you can drag any
+`.gb` or `.gbc` file onto the page to run that instead.
+
+That GIF wasn't screen-recorded. The emulator made it: `tools/make-gif.ts` runs
+the games with no browser, presses the buttons on a script, and writes the GIF
+file byte by byte.
 
 No emulation libraries, no frameworks. Everything in `src/` is the machine.
 
@@ -113,9 +119,10 @@ distributable games. Both `GAME BOY` and `GAME BOY COLOR`
 titles run. Tobu Tobu Girl is a good one. Commercial games are
 copyrighted, so dump your own carts.
 
-Tobu Tobu Girl lives in `public/` and ships with the build, which its MIT
-license allows as long as the credit travels with it — see
-[CREDITS.md](CREDITS.md). Anything else goes in `games/`, which is gitignored.
+The three bundled games (Tobu Tobu Girl, TetraBlox 2000, Fortune & Glory) live
+in `public/` and ship with the build, which their MIT licenses allow as long as
+the credit travels with them — see [CREDITS.md](CREDITS.md). Anything else goes
+in `games/`, which is gitignored.
 
 ## Status
 
@@ -126,7 +133,6 @@ Done:
 - Game Boy Color: palettes, banked VRAM and work RAM, HDMA, double-speed mode
 - MBC1, MBC3, and MBC5 cartridges, battery saves that survive a refresh
 - Runs a frame in about 0.45 ms, roughly 35x faster than it needs to
-
 - Save states and rewind, verified by pixel-identical replays
 
 Not done:
